@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Employee Attrition Analysis</title>
+  <style>
+    :root {
+      --primary: #2F3E46;
+      --bg: #F7F9FB;
+      --panel: #FFFFFF;
+      --ink: #1F2933;
+      --ink-strong: #111827;
+      --muted: #6B7280;
+      --grid: #E5E7EB;
+      --risk-high: #D64545;
+      --risk-high-dark: #B91C1C;
+      --risk-mid: #F59E0B;
+      --risk-low: #22C55E;
+      --heat-low: #E8F5E9;
+      --heat-low-mid: #A7E3B0;
+      --heat-mid: #FDE68A;
+      --heat-high-mid: #FCA5A5;
+      --heat-high: #D64545;
+      --accent: #3B82F6;
+      --shadow: 0 14px 34px rgba(31, 41, 51, .075);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .hero {
+      min-height: 360px;
+      padding: 34px clamp(18px, 4vw, 56px) 28px;
+      color: #fff;
+      background:
+        linear-gradient(90deg, rgba(47, 62, 70, .96), rgba(47, 62, 70, .82) 48%, rgba(47, 62, 70, .26)),
+        url("https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1800&q=80") center/cover;
+      display: grid;
+      align-content: start;
+    }
+
+    .hero h1 {
+      margin: 0;
+      max-width: 980px;
+      font-size: clamp(40px, 7vw, 88px);
+      line-height: .95;
+      letter-spacing: 0;
+      font-weight: 800;
+    }
+
+    .hero .subtitle {
+      margin: 16px 0 0;
+      max-width: 760px;
+      color: rgba(255,255,255,.86);
+      font-size: clamp(18px, 2.2vw, 26px);
+      font-weight: 520;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+      color: rgba(255,255,255,.94);
+      font-size: 13px;
+    }
+
+    .meta span {
+      border: 1px solid rgba(255,255,255,.24);
+      background: rgba(255,255,255,.17);
+      padding: 8px 10px;
+      border-radius: 6px;
+      backdrop-filter: blur(8px);
+    }
+
+    main {
+      padding: 24px clamp(14px, 3.4vw, 46px) 46px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .kpis {
+      margin-top: -72px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 14px;
+    }
+
+    .kpi, .panel {
+      background: var(--panel);
+      border: 1px solid rgba(30, 38, 35, .08);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+    }
+
+    .kpi {
+      min-height: 130px;
+      padding: 16px;
+      display: grid;
+      align-content: space-between;
+      border-left: 5px solid var(--grid);
+    }
+
+    .kpi.high { border-left-color: var(--risk-high); }
+    .kpi.medium { border-left-color: var(--risk-mid); }
+    .kpi.low { border-left-color: var(--risk-low); }
+    .kpi.neutral { border-left-color: var(--accent); }
+
+    .kpi label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 720;
+    }
+
+    .kpi strong {
+      margin-top: 8px;
+      display: block;
+      font-size: clamp(26px, 3vw, 40px);
+      line-height: 1;
+    }
+
+    .kpi small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+    }
+
+    .section-title {
+      grid-column: span 12;
+      margin: 10px 0 -6px;
+      color: var(--primary);
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: clamp(22px, 2.4vw, 30px);
+      line-height: 1.12;
+    }
+
+    .section-title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .panel {
+      min-height: 330px;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .full { grid-column: span 12; }
+    .wide { grid-column: span 8; }
+    .third { grid-column: span 4; }
+    .half { grid-column: span 6; }
+
+    .panel h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .panel p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .chart {
+      width: 100%;
+      height: 250px;
+    }
+
+    .chart.tall {
+      height: 310px;
+    }
+
+    .split-charts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .subchart {
+      min-width: 0;
+    }
+
+    .subchart h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    svg { width: 100%; height: 100%; display: block; }
+    .axis { stroke: var(--grid); stroke-width: 1; }
+    .label { fill: var(--muted); font-size: 11px; }
+    .value { fill: var(--ink); font-size: 12px; font-weight: 700; }
+    .risk-high { fill: var(--risk-high); }
+    .risk-medium { fill: var(--risk-mid); }
+    .risk-low { fill: var(--risk-low); }
+    .risk { fill: var(--risk-high); }
+    .ok { fill: var(--risk-low); }
+    .accent { fill: var(--accent); }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      margin-right: 6px;
+      vertical-align: -1px;
+    }
+
+    .driver-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .driver {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #F9FAFB;
+      border: 1px solid var(--grid);
+      border-left: 4px solid var(--grid);
+    }
+    .driver.high { border-left-color: var(--risk-high); }
+    .driver.medium { border-left-color: var(--risk-mid); }
+    .driver.low { border-left-color: var(--risk-low); }
+
+    .driver b { font-size: 14px; }
+    .driver span { color: var(--muted); font-size: 12px; }
+    .driver strong { font-size: 22px; color: var(--ink-strong); }
+    canvas { width: 100%; height: 250px; display: block; }
+
+    .insight-grid {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .insight-card {
+      border: 1px solid var(--grid);
+      border-radius: 8px;
+      padding: 14px;
+      background: #F9FAFB;
+      border-top: 4px solid var(--grid);
+    }
+
+    .insight-card.high { border-top-color: var(--risk-high); }
+    .insight-card.medium { border-top-color: var(--risk-mid); }
+    .insight-card.low { border-top-color: var(--risk-low); }
+    .insight-card b {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: var(--ink-strong);
+    }
+    .insight-card strong {
+      display: block;
+      color: var(--ink-strong);
+      font-size: 22px;
+      line-height: 1.1;
+    }
+    .insight-card span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 1100px) {
+      .kpis { grid-template-columns: repeat(3, 1fr); }
+      .full, .wide, .third, .half { grid-column: span 12; }
+    }
+
+    @media (max-width: 680px) {
+      .hero { min-height: 420px; }
+      .kpis { grid-template-columns: 1fr; margin-top: -46px; }
+      main { padding-inline: 12px; }
+      .panel { padding: 14px; }
+      .chart, canvas { height: 280px; }
+      .chart.tall { height: 330px; }
+      .split-charts { grid-template-columns: 1fr; }
+      .insight-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div>
+      <h1>Employee Attrition Analysis</h1>
+      <p class="subtitle">Overtime and low salary drive turnover.</p>
+      <div class="meta">
+        <span id="sourceName">Source: hr_clean.csv</span>
+        <span id="rowCount">Loading rows...</span>
+        <span>Target: attrition</span>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <section class="kpis" id="kpis"></section>
+
+    <section class="grid">
+      <div class="section-title">
+        <h2>1. Overall Problem</h2>
+        <p>Start with the scale of attrition and the highest-level business indicators.</p>
+      </div>
+
+      <article class="panel wide">
+        <h2>Attrition Rate by Overtime and Salary Band</h2>
+        <p>Separated views avoid mixing overtime and compensation as one continuous category.</p>
+        <div class="split-charts">
+          <div class="subchart">
+            <h3>Overtime</h3>
+            <div class="chart tall" id="overtimeChart"></div>
+          </div>
+          <div class="subchart">
+            <h3>Salary Band</h3>
+            <div class="chart tall" id="salaryChart"></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel third">
+        <h2>Key Risk Drivers</h2>
+        <p>Largest gaps versus the dataset baseline.</p>
+        <div class="driver-list" id="drivers"></div>
+      </article>
+
+      <div class="section-title">
+        <h2>2. Where Attrition Is Highest</h2>
+        <p>Compare groups using one consistent risk scale: green is low, amber is medium, red is high.</p>
+      </div>
+
+      <article class="panel half">
+        <h2>Department Risk</h2>
+        <p>Attrition rate by department, with employee count under each label.</p>
+        <div class="chart" id="departmentChart"></div>
+      </article>
+
+      <article class="panel half">
+        <h2>Job Role Risk</h2>
+        <p>Roles sorted by attrition rate. Horizontal layout keeps long role names readable.</p>
+        <div class="chart" id="roleChart"></div>
+      </article>
+
+      <div class="section-title">
+        <h2>3. Why Employees Leave</h2>
+        <p>Compensation, satisfaction, age and tenure show the strongest practical patterns.</p>
+      </div>
+
+      <article class="panel half">
+        <h2>Satisfaction Risk</h2>
+        <p>Turnover by satisfaction score.</p>
+        <div class="chart" id="satisfactionChart"></div>
+      </article>
+
+      <article class="panel half">
+        <h2>Age Segments</h2>
+        <p>Attrition rate by employee age group.</p>
+        <div class="chart" id="ageTenureChart"></div>
+      </article>
+
+      <article class="panel wide">
+        <h2>Attrition by Age and Income</h2>
+        <p>Heatmap compares whether turnover concentrates more by salary level, age, or their intersection.</p>
+        <div class="chart" id="ageIncomeHeatmap"></div>
+        <div class="legend"><span><i style="background:var(--risk-high)"></i>Higher attrition</span><span><i style="background:var(--risk-mid)"></i>Medium risk</span><span><i style="background:var(--risk-low)"></i>Lower attrition</span></div>
+      </article>
+
+      <article class="panel third">
+        <h2>Attrition by Income Band</h2>
+        <p>Salary bands show where turnover concentrates.</p>
+        <div class="chart" id="incomeDistributionChart"></div>
+      </article>
+
+      <article class="panel full">
+        <h2>Income vs Years at Company</h2>
+        <p>Heatmap shows whether turnover is concentrated more by compensation level, tenure, or their intersection.</p>
+        <div class="chart" id="incomeTenureHeatmap"></div>
+        <div class="legend"><span><i style="background:var(--risk-high)"></i>Higher attrition</span><span><i style="background:var(--risk-mid)"></i>Medium risk</span><span><i style="background:var(--risk-low)"></i>Lower attrition</span></div>
+      </article>
+
+      <article class="panel full">
+        <h2>Tenure Segments</h2>
+        <p>Attrition rate by years at company, separated from age to avoid mixing lifecycle dimensions.</p>
+        <div class="chart" id="tenureChart"></div>
+      </article>
+
+      <article class="panel full insights">
+        <div>
+          <h2>4. Practical Takeaways</h2>
+          <p>Short decision-ready findings from the strongest visible differences.</p>
+        </div>
+        <div class="insight-grid" id="insights"></div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const fmtPct = v => `${(v * 100).toFixed(1)}%`;
+    const fmtMoney = v => `$${Math.round(v).toLocaleString()}`;
+    const byId = id => document.getElementById(id);
+    let allRows = [];
+
+    function parseCsv(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines.shift().split(",");
+      return lines.map(line => {
+        const values = line.split(",");
+        const row = {};
+        headers.forEach((h, i) => row[h] = values[i]);
+        row.Age = +row.Age;
+        row.MonthlyIncome = +row.MonthlyIncome;
+        row.JobSatisfaction = +row.JobSatisfaction;
+        row.YearsAtCompany = +row.YearsAtCompany;
+        row.attrition = +row.attrition;
+        return row;
+      });
+    }
+
+    function avg(rows, key) {
+      return rows.reduce((s, r) => s + r[key], 0) / Math.max(rows.length, 1);
+    }
+
+    function rate(rows) {
+      return rows.reduce((s, r) => s + r.attrition, 0) / Math.max(rows.length, 1);
+    }
+
+    function group(rows, key) {
+      const map = new Map();
+      rows.forEach(r => {
+        const k = typeof key === "function" ? key(r) : r[key];
+        if (!map.has(k)) map.set(k, []);
+        map.get(k).push(r);
+      });
+      return [...map].map(([name, items]) => ({ name, count: items.length, rate: rate(items), rows: items }));
+    }
+
+    function quantiles(values) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const q = p => sorted[Math.floor((sorted.length - 1) * p)];
+      return [q(.25), q(.5), q(.75)];
+    }
+
+    function percentile(values, p) {
+      const sorted = [...values].filter(Number.isFinite).sort((a, b) => a - b);
+      if (!sorted.length) return 0;
+      return sorted[Math.floor((sorted.length - 1) * p)];
+    }
+
+    function riskClass(value, thresholds) {
+      if (value >= thresholds.high) return "high";
+      if (value >= thresholds.medium) return "medium";
+      return "low";
+    }
+
+    function barRiskClass(value, thresholds) {
+      return `risk-${riskClass(value, thresholds)}`;
+    }
+
+    function chartThresholds(groups, baseline) {
+      const values = groups.map(d => d.rate);
+      return {
+        high: percentile(values, .8),
+        medium: Math.max(baseline, percentile(values, .45))
+      };
+    }
+
+    function salaryBandFactory(q1, q2, q3) {
+      return v => v <= q1 ? "Low salary" : v <= q2 ? "Lower-mid" : v <= q3 ? "Upper-mid" : "High salary";
+    }
+
+    function ageBand(v) {
+      if (v < 30) return "<30";
+      if (v < 40) return "30-39";
+      if (v < 50) return "40-49";
+      return "50+";
+    }
+
+    function tenureBand(v) {
+      if (v <= 1) return "0-1 yrs";
+      if (v <= 3) return "2-3 yrs";
+      if (v <= 7) return "4-7 yrs";
+      if (v <= 12) return "8-12 yrs";
+      return "13+ yrs";
+    }
+
+    function incomeBand(v) {
+      if (v < 3000) return "<3k";
+      if (v < 6000) return "3k-6k";
+      if (v < 9000) return "6k-9k";
+      if (v < 13000) return "9k-13k";
+      return "13k+";
+    }
+
+    function barChart(el, data, opts = {}) {
+      const w = 760, h = 250, m = { top: 14, right: 46, bottom: opts.bottom || 58, left: 44 };
+      const max = Math.max(...data.map(d => d.value), .01);
+      const step = (w - m.left - m.right) / data.length;
+      const bw = Math.max(16, step * .58);
+      const y = v => h - m.bottom - (v / max) * (h - m.top - m.bottom);
+      const rotate = data.some(d => d.name.length > 12);
+      const bars = data.map((d, i) => {
+        const x = m.left + i * step + (step - bw) / 2;
+        const bh = h - m.bottom - y(d.value);
+        const labelY = rotate ? h - m.bottom + 14 : h - m.bottom + 18;
+        const label = rotate
+          ? `<text class="label" x="${x + bw / 2}" y="${labelY}" text-anchor="end" transform="rotate(-32 ${x + bw / 2} ${labelY})">${d.name}</text>`
+          : `<text class="label" x="${x + bw / 2}" y="${labelY}" text-anchor="middle">${d.name}</text>`;
+        const sub = d.count ? `<text class="label" x="${x + bw / 2}" y="${h - m.bottom + (rotate ? 50 : 34)}" text-anchor="middle">n=${d.count}</text>` : "";
+        return `<rect x="${x}" y="${y(d.value)}" width="${bw}" height="${Math.max(1, bh)}" rx="4" class="${d.cls || "risk"}"></rect>
+          <text class="value" x="${x + bw / 2}" y="${y(d.value) - 7}" text-anchor="middle">${opts.percent ? fmtPct(d.value) : d.value}</text>${label}${sub}`;
+      }).join("");
+      el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img">
+        <line class="axis" x1="${m.left}" y1="${h - m.bottom}" x2="${w - m.right}" y2="${h - m.bottom}"></line>
+        <line class="axis" x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${h - m.bottom}"></line>
+        ${[0, .25, .5, .75, 1].map(t => `<line class="axis" x1="${m.left}" y1="${y(max * t)}" x2="${w - m.right}" y2="${y(max * t)}" opacity=".55"></line>`).join("")}
+        ${bars}
+      </svg>`;
+    }
+
+    function horizontalBarChart(el, data, opts = {}) {
+      const w = 760, h = Math.max(250, data.length * 34 + 42), m = { top: 14, right: 72, bottom: 24, left: opts.left || 190 };
+      const max = Math.max(...data.map(d => d.value), .01);
+      const row = (h - m.top - m.bottom) / data.length;
+      const x = v => m.left + (v / max) * (w - m.left - m.right);
+      el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img">
+        ${[0, .25, .5, .75, 1].map(t => `<line class="axis" x1="${x(max * t)}" y1="${m.top}" x2="${x(max * t)}" y2="${h - m.bottom}" opacity=".5"></line>`).join("")}
+        ${data.map((d, i) => {
+          const y = m.top + i * row + row * .18;
+          const bh = Math.max(12, row * .56);
+          return `<text class="label" x="${m.left - 10}" y="${y + bh * .72}" text-anchor="end">${d.name}</text>
+            <rect x="${m.left}" y="${y}" width="${Math.max(2, x(d.value) - m.left)}" height="${bh}" rx="4" class="${d.cls || "risk"}"></rect>
+            <text class="value" x="${x(d.value) + 8}" y="${y + bh * .72}">${opts.percent ? fmtPct(d.value) : d.value}</text>
+            ${d.count ? `<text class="label" x="${x(d.value) + 58}" y="${y + bh * .72}">n=${d.count}</text>` : ""}`;
+        }).join("")}
+      </svg>`;
+    }
+
+    function hexToRgb(hex) {
+      const clean = hex.replace("#", "");
+      return {
+        r: parseInt(clean.slice(0, 2), 16),
+        g: parseInt(clean.slice(2, 4), 16),
+        b: parseInt(clean.slice(4, 6), 16)
+      };
+    }
+
+    function mixColor(a, b, t) {
+      const c1 = hexToRgb(a), c2 = hexToRgb(b);
+      const v = Math.max(0, Math.min(1, t));
+      return `rgb(${Math.round(c1.r + (c2.r - c1.r) * v)},${Math.round(c1.g + (c2.g - c1.g) * v)},${Math.round(c1.b + (c2.b - c1.b) * v)})`;
+    }
+
+    function heatColor(value, thresholds) {
+      if (value >= thresholds.high) {
+        return mixColor("#FCA5A5", "#D64545", (value - thresholds.high) / Math.max(.001, thresholds.max - thresholds.high));
+      }
+      if (value >= thresholds.medium) {
+        return mixColor("#FDE68A", "#FCA5A5", (value - thresholds.medium) / Math.max(.001, thresholds.high - thresholds.medium));
+      }
+      return mixColor("#E8F5E9", "#A7E3B0", value / Math.max(.001, thresholds.medium));
+    }
+
+    function heatmap(el, rows, xOrder, yOrder, xAccessor, yAccessor, xLabel, yLabel) {
+      const cells = [];
+      yOrder.forEach(yName => {
+        xOrder.forEach(xName => {
+          const items = rows.filter(r => xAccessor(r) === xName && yAccessor(r) === yName);
+          cells.push({ xName, yName, count: items.length, rate: rate(items) });
+        });
+      });
+      const values = cells.map(c => c.rate);
+      const thresholds = {
+        high: percentile(values, .8),
+        medium: percentile(values, .45),
+        max: Math.max(...values, .01)
+      };
+      const w = 820, h = 285, m = { top: 30, right: 20, bottom: 42, left: 102 };
+      const cw = (w - m.left - m.right) / xOrder.length;
+      const ch = (h - m.top - m.bottom) / yOrder.length;
+      el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img">
+        ${xOrder.map((name, i) => `<text class="label" x="${m.left + i * cw + cw / 2}" y="19" text-anchor="middle">${name}</text>`).join("")}
+        ${yOrder.map((name, i) => `<text class="label" x="${m.left - 10}" y="${m.top + i * ch + ch / 2 + 4}" text-anchor="end">${name}</text>`).join("")}
+        ${cells.map(c => {
+          const x = m.left + xOrder.indexOf(c.xName) * cw;
+          const y = m.top + yOrder.indexOf(c.yName) * ch;
+          const fill = heatColor(c.rate, thresholds);
+          const text = c.rate >= thresholds.high ? "#fff" : "#1F2933";
+          return `<rect x="${x + 4}" y="${y + 4}" width="${cw - 8}" height="${ch - 8}" rx="7" fill="${fill}"></rect>
+            <text x="${x + cw / 2}" y="${y + ch / 2 - 3}" text-anchor="middle" fill="${text}" font-size="13" font-weight="760">${fmtPct(c.rate)}</text>
+            <text x="${x + cw / 2}" y="${y + ch / 2 + 15}" text-anchor="middle" fill="${text}" font-size="10" opacity=".74">n=${c.count}</text>`;
+        }).join("")}
+        <text class="label" x="${m.left + (w - m.left - m.right) / 2}" y="${h - 10}" text-anchor="middle">${xLabel}</text>
+        <text class="label" x="14" y="${m.top + (h - m.top - m.bottom) / 2}" transform="rotate(-90 14 ${m.top + (h - m.top - m.bottom) / 2})" text-anchor="middle">${yLabel}</text>
+      </svg>`;
+    }
+
+    function ageIncomeHeatmap(el, rows, salaryBand) {
+      heatmap(
+        el,
+        rows,
+        ["<30", "30-39", "40-49", "50+"],
+        ["Low salary", "Lower-mid", "Upper-mid", "High salary"],
+        r => ageBand(r.Age),
+        r => salaryBand(r.MonthlyIncome),
+        "Age group",
+        "Income band"
+      );
+    }
+
+    function incomeTenureHeatmap(el, rows, salaryBand) {
+      heatmap(
+        el,
+        rows,
+        ["0-1 yrs", "2-3 yrs", "4-7 yrs", "8-12 yrs", "13+ yrs"],
+        ["Low salary", "Lower-mid", "Upper-mid", "High salary"],
+        r => tenureBand(r.YearsAtCompany),
+        r => salaryBand(r.MonthlyIncome),
+        "Years at company",
+        "Income band"
+      );
+    }
+
+    function renderInsights(rows, salaryBand, baseline) {
+      const overtimeYes = rows.filter(r => r.OverTime === "Yes");
+      const overtimeNo = rows.filter(r => r.OverTime === "No");
+      const lowSalary = rows.filter(r => salaryBand(r.MonthlyIncome) === "Low salary");
+      const highSalary = rows.filter(r => salaryBand(r.MonthlyIncome) === "High salary");
+      const earlyTenureLow = rows.filter(r => tenureBand(r.YearsAtCompany) === "0-1 yrs" && salaryBand(r.MonthlyIncome) === "Low salary");
+      const young = rows.filter(r => ageBand(r.Age) === "<30");
+      const earlyTenure = rows.filter(r => tenureBand(r.YearsAtCompany) === "0-1 yrs");
+      const roleRisk = group(rows, "JobRole").filter(d => d.count >= 40).sort((a, b) => b.rate - a.rate)[0];
+      byId("insights").innerHTML = [
+        {
+          cls: "high",
+          title: "Overtime is the main driver",
+          value: fmtPct(rate(overtimeYes)),
+          note: `${fmtPct(rate(overtimeNo))} without overtime`
+        },
+        {
+          cls: "high",
+          title: "Low salary amplifies attrition",
+          value: fmtPct(rate(lowSalary)),
+          note: `${fmtPct(rate(highSalary))} in high salary band`
+        },
+        {
+          cls: "medium",
+          title: "Young employees are vulnerable",
+          value: fmtPct(rate(young)),
+          note: `Under 30 group, n=${young.length}`
+        },
+        {
+          cls: "high",
+          title: "Early tenure needs attention",
+          value: fmtPct(rate(earlyTenure)),
+          note: `0-1 years overall; low salary cell ${fmtPct(rate(earlyTenureLow))}`
+        },
+        {
+          cls: "high",
+          title: `Highest-risk role: ${roleRisk.name}`,
+          value: fmtPct(roleRisk.rate),
+          note: `Meaningful sample, n=${roleRisk.count}`
+        }
+      ].map(item => `<article class="insight-card ${item.cls}"><b>${item.title}</b><strong>${item.value}</strong><span>${item.note}</span></article>`).join("");
+    }
+
+    function render() {
+      const rows = allRows;
+      const total = rows.length;
+      const attritionRows = rows.filter(r => r.attrition);
+      const baseline = rate(rows);
+      const avgIncome = avg(rows, "MonthlyIncome");
+      const overtimeRows = rows.filter(r => r.OverTime === "Yes");
+      const [q1, q2, q3] = quantiles(rows.map(r => r.MonthlyIncome));
+      const salaryBand = salaryBandFactory(q1, q2, q3);
+      const lowSalaryRows = rows.filter(r => salaryBand(r.MonthlyIncome) === "Low salary");
+
+      byId("rowCount").textContent = `${total.toLocaleString()} employees`;
+      byId("kpis").innerHTML = [
+        ["Employees", total.toLocaleString(), "Clean HR dataset", "neutral"],
+        ["Attrition Rate", fmtPct(baseline), `${attritionRows.length} employees left`, "medium"],
+        ["Avg Monthly Income", fmtMoney(avgIncome), `Leavers: ${fmtMoney(avg(attritionRows, "MonthlyIncome"))}`, "neutral"],
+        ["Overtime Attrition", fmtPct(rate(overtimeRows)), `+${((rate(overtimeRows) - baseline) * 100).toFixed(1)} pp vs overall`, "high"],
+        ["Low Salary Attrition", fmtPct(rate(lowSalaryRows)), `+${((rate(lowSalaryRows) - baseline) * 100).toFixed(1)} pp vs overall`, "high"]
+      ].map(k => `<article class="kpi ${k[3]}"><label>${k[0]}</label><strong>${k[1]}</strong><small>${k[2]}</small></article>`).join("");
+
+      const overtimeData = group(rows, "OverTime").sort((a, b) => b.rate - a.rate);
+      const salaryData = group(rows, r => salaryBand(r.MonthlyIncome));
+      const salaryOrder = ["Low salary", "Lower-mid", "Upper-mid", "High salary"];
+      const overtimeThresholds = chartThresholds(overtimeData, baseline);
+      const salarySorted = salaryData.sort((a, b) => salaryOrder.indexOf(a.name) - salaryOrder.indexOf(b.name));
+      const salaryThresholds = chartThresholds(salarySorted, baseline);
+      barChart(byId("overtimeChart"), overtimeData.map(d => ({ name: d.name, value: d.rate, count: d.count, cls: barRiskClass(d.rate, overtimeThresholds) })), { percent: true, bottom: 72 });
+      barChart(byId("salaryChart"), salarySorted.map(d => ({ name: d.name, value: d.rate, count: d.count, cls: barRiskClass(d.rate, salaryThresholds) })), { percent: true, bottom: 72 });
+
+      const driverData = [
+        { label: "Overtime employees", rows: overtimeRows },
+        { label: "Low salary employees", rows: lowSalaryRows },
+        { label: "Sales Representative role", rows: rows.filter(r => r.JobRole === "Sales Representative") },
+        { label: "Job satisfaction score 1", rows: rows.filter(r => r.JobSatisfaction === 1) }
+      ].map(d => ({...d, r: rate(d.rows)})).sort((a, b) => b.r - a.r);
+      const driverThresholds = { high: percentile(driverData.map(d => d.r), .8), medium: Math.max(baseline, percentile(driverData.map(d => d.r), .45)) };
+      byId("drivers").innerHTML = driverData.map(d => `<div class="driver ${riskClass(d.r, driverThresholds)}"><div><b>${d.label}</b><br><span>${d.rows.length} employees, +${((d.r - baseline) * 100).toFixed(1)} pp vs overall ${fmtPct(baseline)}</span></div><strong>${fmtPct(d.r)}</strong></div>`).join("");
+
+      const departmentGroups = group(rows, "Department").sort((a, b) => b.rate - a.rate);
+      const departmentThresholds = chartThresholds(departmentGroups, baseline);
+      barChart(byId("departmentChart"), departmentGroups.map(d => ({ name: d.name.replace("Research & Development", "R&D"), value: d.rate, count: d.count, cls: barRiskClass(d.rate, departmentThresholds) })), { percent: true, bottom: 72 });
+
+      const roleGroups = group(rows, "JobRole").filter(d => d.count >= 40).sort((a, b) => b.rate - a.rate);
+      const roleThresholds = chartThresholds(roleGroups, baseline);
+      horizontalBarChart(byId("roleChart"), roleGroups.map(d => ({ name: d.name, value: d.rate, count: d.count, cls: barRiskClass(d.rate, roleThresholds) })), { percent: true, left: 205 });
+
+      const satisfactionGroups = group(rows, "JobSatisfaction").sort((a, b) => +a.name - +b.name);
+      const satisfactionThresholds = chartThresholds(satisfactionGroups, baseline);
+      barChart(byId("satisfactionChart"), satisfactionGroups.map(d => ({ name: `Score ${d.name}`, value: d.rate, cls: barRiskClass(d.rate, satisfactionThresholds) })), { percent: true });
+
+      const ageGroups = group(rows, r => ageBand(r.Age)).sort((a, b) => ["<30","30-39","40-49","50+"].indexOf(a.name) - ["<30","30-39","40-49","50+"].indexOf(b.name));
+      const ageThresholds = chartThresholds(ageGroups, baseline);
+      barChart(byId("ageTenureChart"), ageGroups.map(d => ({ name: d.name, value: d.rate, count: d.count, cls: barRiskClass(d.rate, ageThresholds) })), { percent: true, bottom: 72 });
+
+      const tenureGroups = group(rows, r => tenureBand(r.YearsAtCompany)).sort((a, b) => ["0-1 yrs","2-3 yrs","4-7 yrs","8-12 yrs","13+ yrs"].indexOf(a.name) - ["0-1 yrs","2-3 yrs","4-7 yrs","8-12 yrs","13+ yrs"].indexOf(b.name));
+      const tenureThresholds = chartThresholds(tenureGroups, baseline);
+      barChart(byId("tenureChart"), tenureGroups.map(d => ({ name: d.name, value: d.rate, count: d.count, cls: barRiskClass(d.rate, tenureThresholds) })), { percent: true, bottom: 72 });
+
+      const incomeGroups = group(rows, r => incomeBand(r.MonthlyIncome)).sort((a, b) => ["<3k","3k-6k","6k-9k","9k-13k","13k+"].indexOf(a.name) - ["<3k","3k-6k","6k-9k","9k-13k","13k+"].indexOf(b.name));
+      const incomeThresholds = chartThresholds(incomeGroups, baseline);
+      barChart(byId("incomeDistributionChart"), incomeGroups.map(d => ({ name: d.name, value: d.rate, cls: barRiskClass(d.rate, incomeThresholds) })), { percent: true });
+      ageIncomeHeatmap(byId("ageIncomeHeatmap"), rows, salaryBand);
+      incomeTenureHeatmap(byId("incomeTenureHeatmap"), rows, salaryBand);
+      renderInsights(rows, salaryBand, baseline);
+    }
+
+    fetch("hr_clean.csv")
+      .then(r => {
+        if (!r.ok) throw new Error("CSV not found");
+        return r.text();
+      })
+      .then(text => {
+        allRows = parseCsv(text);
+        render();
+      })
+      .catch(err => {
+        document.body.innerHTML = `<main><article class="panel"><h2>Could not load hr_clean.csv</h2><p>Open this dashboard through a local web server from the Downloads folder so the browser can read the CSV file.</p><p>${err.message}</p></article></main>`;
+      });
+  </script>
+</body>
+</html>
